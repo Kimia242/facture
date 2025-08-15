@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="140" viewBox="0 0 480 140">
+  <rect width="480" height="140" rx="16" fill="white"/>
+  <g transform="translate(10,10)">
+    <rect x="0" y="48" width="210" height="50" rx="8" fill="rgb(244, 91, 31)"/>
+    <circle cx="35" cy="110" r="10" fill="rgb(15, 52, 96)"/>
+    <circle cx="100" cy="110" r="10" fill="rgb(15, 52, 96)"/>
+    <rect x="220" y="0" width="240" height="30" fill="none" stroke="rgb(15, 52, 96)" stroke-width="6"/>
+    <text x="230" y="22" font-family="Arial" font-size="20" fill="rgb(15, 52, 96)">IMPORT &amp; EXPORT</text>
+    <text x="10" y="82" font-family="Arial" font-size="18" font-weight="bold" fill="white">GC TRADING CO.LTD</text>
+  </g>
+</svg>

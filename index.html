@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GC TRADING CO.LTD — Générateur de Factures</title>
+  <meta name="theme-color" content="#0f3460">
+  <link rel="icon" href="assets/icon-512.png">
+  <style>
+    :root{
+      --primary:#f45b1f; /* orange proche du visuel */
+      --accent:#0f3460;  /* bleu marine */
+      --muted:#f3f4f6;
+      --ink:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial; margin:0; color:var(--ink); background:#fff;}
+    header{display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:4px solid var(--primary);}
+    .brand{display:flex; gap:16px; align-items:center;}
+    .brand img{height:58px}
+    .brand h1{font-size:22px; margin:0; line-height:1.1;}
+    .badge{color:var(--accent); font-weight:700; letter-spacing:.3px}
+    .toolbar{display:flex; flex-wrap:wrap; gap:8px}
+    button{background:var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600}
+    button.secondary{background:var(--primary)}
+    button.ghost{background:#fff; color:var(--accent); border:2px solid var(--accent)}
+    main{display:grid; grid-template-columns:360px 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto}
+    @media (max-width: 980px){ main{grid-template-columns:1fr} }
+    .card{background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    label{font-size:12px; color:#374151; display:block; margin-bottom:6px}
+    input,select,textarea{width:100%; padding:10px; border:1px solid #d1d5db; border-radius:10px; outline:none}
+    .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+    .muted{color:#6b7280}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 10px; background:var(--muted); border-radius:999px; font-size:12px}
+    .invoice{background:#fff; border:1px solid #e5e7eb; border-radius:14px; overflow:hidden}
+    .inv-header{display:flex; justify-content:space-between; align-items:flex-start; padding:18px 20px; border-bottom:4px solid var(--primary)}
+    .inv-title{font-size:40px; color:var(--primary); font-weight:800; letter-spacing:1px}
+    .inv-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:10px 20px}
+    .row{display:flex; align-items:center; gap:12px; padding:6px 20px}
+    .check{color:var(--primary); font-weight:900}
+    table{width:100%; border-collapse:collapse; margin:10px 0 0}
+    thead th{background:var(--primary); color:#fff; text-align:left; padding:10px; font-size:14px}
+    tbody td{padding:8px 10px; border-bottom:1px solid #eee}
+    tfoot td{padding:8px 10px}
+    .totals{padding:16px 20px; display:grid; gap:6px; justify-content:end}
+    .totals .line{display:grid; grid-template-columns:160px 220px; gap:10px; align-items:center}
+    .totals input{justify-self:end; text-align:right}
+    .add-row{margin:10px 20px}
+    .signature{padding:14px 20px; display:flex; justify-content:space-between}
+    .watermark{position:absolute; inset:0; opacity:.04; background-image:linear-gradient(0deg, rgba(15,52,96,.8), rgba(244,91,31,.8)); -webkit-backdrop-filter: brightness(0.5); backdrop-filter: brightness(0.5)}
+    .inv-wrap{position:relative; background:white}
+    
+    /* Styles pour les prix */
+    .price, .total-amount, #ht, #tvaVal, #remiseVal, #ttc {
+      white-space: nowrap !important;
+      text-align: right !important;
+      font-weight: bold !important;
+      color: #2c3e50 !important;
+      padding: 2px 5px !important;
+      border-radius: 3px !important;
+      background-color: #f8f9fa !important;
+      display: inline-block !important;
+      min-width: 90px !important;
+      font-family: Arial, sans-serif !important;
+      font-size: 12px !important;
+      border: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    
+    .total-amount, #ttc {
+      font-size: 1.2em !important;
+      background-color: #e9ecef !important;
+      padding: 5px 10px !important;
+    }
+    
+    /* Styles spécifiques pour les champs de totaux */
+    .totals input {
+      background-color: #f8f9fa !important;
+      border: 1px solid #dee2e6 !important;
+      padding: 5px 10px !important;
+      text-align: right !important;
+      min-width: 120px !important;
+    }
+    
+    #ttc {
+      font-weight: 800 !important;
+      font-size: 1.3em !important;
+      background-color: #e9ecef !important;
+    }
+  </style>
+  <!-- libs (cached by SW) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="https://i.ibb.co/rStnxMk/Logocg.png" alt="GC Trading logo">
+      <div>
+        <h1>GC TRADING CO.LTD <span class="badge">— IMPORT &amp; EXPORT</span></h1>
+        <div class="pill">Générateur de factures (PWA) — PDF &amp; XLSX</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button id="btn-save">Exporter PDF</button>
+      <button id="btn-xlsx" class="secondary">Exporter XLSX</button>
+      <button id="btn-print" class="ghost">Imprimer</button>
+    </div>
+  </header>
+  <main>
+    <section class="card">
+      <h3 style="margin:0 0 10px">Paramètres</h3>
+      <div class="grid-2">
+        <div>
+          <label>N° de facture</label>
+          <input id="inv-number" placeholder="ex: GC-2025-001" value="GC-{{new Date().getFullYear()}}-001" onfocus="if(this.value.includes('{{')) this.value=''">
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="inv-date" type="date">
+        </div>
+      </div>
+      <hr style="margin:14px 0">
+      <div>
+        <strong>Émetteur</strong>
+        <small class="muted"> (pré-rempli — modifiable)</small>
+      </div>
+      <div>
+        <label>Nom de l'entreprise</label>
+        <input id="from-name" value="CG TRADING CO.LTD">
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Adresse (BZV)</label>
+          <textarea id="from-addr" rows="2">1601 Rue Louingui, avenue de Charles Ouenzé</textarea>
+        </div>
+        <div>
+          <label>Adresse (Chine)</label>
+          <textarea id="from-addr2" rows="2">广州市越秀区环市西路202号美博运动城1119档</textarea>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Téléphones</label>
+          <input id="from-phone" value="+242 06 819 71 28 | +242 06 482 60 70 | +86 188 54 45 40 84">
+        </div>
+        <div>
+          <label>Email</label>
+          <input id="from-mail" value="gcbusiness72@gmail.com">
+        </div>
+      </div>
+
+      <hr style="margin:14px 0">
+      <div><strong>Destinataire</strong></div>
+      <div>
+        <label>Nom</label>
+        <input id="to-name" placeholder="Client / Société">
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Téléphone</label>
+          <input id="to-phone" placeholder="+XXX XX XX XX XX">
+        </div>
+        <div>
+          <label>Adresse</label>
+          <input id="to-addr" placeholder="Adresse complète">
+        </div>
+      </div>
+      <hr style="margin:14px 0">
+      <div class="grid-3">
+        <div>
+          <label>TVA (%)</label>
+          <input id="tva" type="number" step="0.01" value="0">
+        </div>
+        <div>
+          <label>Remise (%)</label>
+          <input id="remise" type="number" step="0.01" value="0">
+        </div>
+        <div>
+          <label>Devise</label>
+          <select id="currency">
+            <option value="XAF">XAF</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="invoice" id="invoice">
+      <div class="inv-wrap">
+        <div class="inv-header">
+          <div>
+            <div class="inv-title">FACTURE</div>
+            <div class="muted" id="head-meta">DATE : ———— &nbsp;&nbsp;|&nbsp;&nbsp; FACTURE N° : ————</div>
+          </div>
+          <img src="https://i.ibb.co/rStnxMk/Logocg.png" style="height:80px" alt="GC Trading logo">
+        </div>
+
+        <div class="inv-grid">
+          <div>
+            <strong>ÉMETTEUR : CG TRADING CO.LTD</strong>
+            <div class="muted" style="font-size:12px; margin-top:4px">
+              +24206 819 71 28 | +242 06 482 60 70 | +86 188 54 45 40 84<br>
+              ADRESSE (BZV) : 1601 Rue Louingui, avenue de Charles Ouenzé<br>
+              ADRESSE CHINE : 广州市越秀区环市西路202号美博运动城1119档<br>
+              ADRESSE MAIL : gcbusiness72@gmail.com
+            </div>
+            <div class="services-container">
+              <h3>NOS SERVICES</h3>
+              <div class="services-grid">
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Expédition de colis</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Achat de voitures</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Chargement conteneurs</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Groupage aérien et maritime</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Divers fournitures & équipements</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Achat de marchandises</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Import-Export</span>
+                </div>
+                <div class="service-row">
+                  <span class="check">✓</span>
+                  <span>Recherche & Paiement fournisseur</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <strong>DESTINATAIRE :</strong>
+            <div>NOM : <span id="toDisplay">—</span></div>
+            <div>TÉL : <span id="toPhoneDisplay">—</span></div>
+            <div>ADRESSE : <span id="toAddrDisplay">—</span></div>
+          </div>
+        </div>
+
+        <table id="items">
+          <thead>
+            <tr>
+              <th style="width:55%">Description</th>
+              <th style="width:15%">Prix Unitaire</th>
+              <th style="width:15%">Quantité</th>
+              <th style="width:15%">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        <div class="add-row">
+          <button type="button" class="secondary" onclick="addRow()">+ Ajouter une ligne</button>
+        </div>
+
+        <div class="totals">
+          <div class="line"><div>HT TOTAL :</div><input id="ht" readonly></div>
+          <div class="line"><div>TVA :</div><input id="tvaVal" readonly></div>
+          <div class="line"><div>REMISE :</div><input id="remiseVal" readonly></div>
+          <div class="line"><div><strong>TOTAL TTC :</strong></div><input id="ttc" readonly></div>
+        </div>
+        <div class="signature">
+          <div class="muted">Merci pour votre confiance — GC TRADING CO.LTD</div>
+          <div class="signature-stamp">
+  <img src="https://i.ibb.co/Kzrvqnt7/pay.png" alt="Signature & Cachet" style="max-height: 100px; max-width: 200px; margin: 0 auto; display: block;">
+</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+
+  // Helpers
+  const fmt = (n, cur) => {
+    // Arrondir à l'entier le plus proche
+    const num = Math.round(n);
+    // Formatter avec des points comme séparateurs de milliers
+    const formattedNum = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `${formattedNum} ${cur}`;
+  };
+  const qs = sel => document.querySelector(sel);
+
+  // Init date
+  qs('#inv-date').valueAsDate = new Date();
+
+  function addRow(desc='', pu=0, qte=1){
+    const tbody = qs('#items tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td contenteditable="true" class="desc">${desc}</td>
+      <td><input type="number" step="0.01" class="pu" value="${pu}"></td>
+      <td><input type="number" step="1" class="qty" value="${qte}"></td>
+      <td class="lineTotal">0</td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('input').forEach(el => el.addEventListener('input', compute));
+    compute();
+  }
+
+  function compute(){
+    const currency = qs('#currency').value;
+    let ht = 0;
+    qs('#items tbody').querySelectorAll('tr').forEach(tr => {
+      const pu = parseFloat(tr.querySelector('.pu').value || 0);
+      const qty = parseFloat(tr.querySelector('.qty').value || 0);
+      const total = pu * qty;
+      tr.querySelector('.lineTotal').textContent = fmt(total, currency);
+      ht += total;
+    });
+    const tvaP = parseFloat(qs('#tva').value || 0);
+    const remP = parseFloat(qs('#remise').value || 0);
+    const tvaVal = ht * (tvaP/100);
+    const remVal = (ht + tvaVal) * (remP/100);
+    const ttc = ht + tvaVal - remVal;
+    qs('#ht').value = fmt(ht, currency);
+    qs('#tvaVal').value = fmt(tvaVal, currency);
+    qs('#remiseVal').value = fmt(remVal, currency);
+    qs('#ttc').value = fmt(ttc, currency);
+
+    // header meta
+    const date = qs('#inv-date').value || '';
+    const num  = qs('#inv-number').value || '';
+    qs('#head-meta').textContent = `DATE : ${date||'—'} | FACTURE N° : ${num||'—'}`;
+
+    // recipient
+    qs('#toDisplay').textContent = qs('#to-name').value || '—';
+    qs('#toPhoneDisplay').textContent = qs('#to-phone').value || '—';
+    qs('#toAddrDisplay').textContent = qs('#to-addr').value || '—';
+  }
+
+  // Initial rows
+  addRow('Produit / Service', 0, 1);
+
+  // Recompute on inputs
+  ['tva','remise','currency','inv-number','inv-date','to-name','to-phone','to-addr'].forEach(id => {
+    qs('#'+id).addEventListener('input', compute);
+    qs('#'+id).addEventListener('change', compute);
+  });
+
+  // Fonction pour générer le PDF avec une meilleure qualité
+  async function generateHighQualityPDF() {
+    const invoiceElement = document.getElementById('invoice');
+    
+    // Créer un clone pour ne pas modifier l'affichage actuel
+    const clone = invoiceElement.cloneNode(true);
+
+    // "Aplatir" les éléments interactifs en texte statique pour un rendu PDF correct
+    clone.querySelectorAll('#items tbody tr').forEach(tr => {
+      const descCell = tr.querySelector('.desc');
+      if (descCell) descCell.removeAttribute('contenteditable');
+      
+      tr.querySelectorAll('input.pu, input.qty').forEach(input => {
+        const parentTd = input.parentNode;
+        parentTd.textContent = input.value;
+        parentTd.style.textAlign = 'right';
+      });
+    });
+
+    const totalsDiv = clone.querySelector('.totals');
+    if (totalsDiv) {
+        const table = document.createElement('table');
+        table.style.width = 'auto';
+        table.style.marginLeft = 'auto';
+        table.style.borderCollapse = 'separate';
+        table.style.borderSpacing = '0 6px'; // Add vertical spacing
+
+        const tbody = document.createElement('tbody');
+
+        clone.querySelectorAll('.totals .line').forEach(line => {
+            const labelDiv = line.querySelector('div');
+            const input = line.querySelector('input');
+            if (!labelDiv || !input) return;
+
+            const label = labelDiv.textContent;
+            const value = input.value;
+
+            const tr = document.createElement('tr');
+            
+            const labelTd = document.createElement('td');
+            labelTd.textContent = label;
+            labelTd.style.textAlign = 'right';
+            labelTd.style.padding = '8px';
+            labelTd.style.border = 'none';
+            labelTd.style.fontWeight = labelDiv.querySelector('strong') ? 'bold' : 'normal';
+
+            const valueTd = document.createElement('td');
+            valueTd.textContent = value;
+            valueTd.style.textAlign = 'right';
+            valueTd.style.padding = '10px 12px';
+            valueTd.style.border = '1px solid #dee2e6';
+            valueTd.style.borderRadius = '10px';
+            valueTd.style.backgroundColor = '#f8f9fa';
+            valueTd.style.whiteSpace = 'nowrap';
+            valueTd.style.minWidth = '200px';
+
+            if (input.id === 'ttc') {
+                labelTd.style.fontWeight = 'bold';
+                valueTd.style.fontWeight = 'bold';
+                valueTd.style.fontSize = '1.1em';
+                valueTd.style.backgroundColor = '#e9ecef';
+            }
+
+            tr.appendChild(labelTd);
+            tr.appendChild(valueTd);
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        totalsDiv.innerHTML = '';
+        totalsDiv.style.padding = '16px 20px';
+        totalsDiv.appendChild(table);
+    }
+
+    const addRowButton = clone.querySelector('.add-row');
+    if (addRowButton) addRowButton.remove();
+
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.width = '800px';
+    tempContainer.style.background = 'white';
+    tempContainer.appendChild(clone);
+    document.body.appendChild(tempContainer);
+
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      
+      const canvas = await html2canvas(clone, { scale: 2, useCORS: true });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = doc.internal.pageSize.getWidth() - 20;
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      
+      doc.addImage(imgData, 'PNG', 10, 10, pageWidth, pageHeight);
+      
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(
+          `Page ${i} sur ${pageCount}`,
+          doc.internal.pageSize.getWidth() - 35,
+          doc.internal.pageSize.getHeight() - 10
+        );
+      }
+      
+      const invNumber = document.getElementById('inv-number').value || 'facture';
+      doc.save(`${invNumber}.pdf`);
+      
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF :', error);
+      alert('Une erreur est survenue lors de la génération du PDF.');
+    } finally {
+      document.body.removeChild(tempContainer);
+    }
+  }
+
+  // Export PDF avec une meilleure qualité pour les prix
+  document.getElementById('btn-save').addEventListener('click', generateHighQualityPDF);
+
+  // Print
+  document.getElementById('btn-print').addEventListener('click', () => window.print());
+
+  // Export XLSX via SheetJS
+  document.getElementById('btn-xlsx').addEventListener('click', () => {
+    const currency = qs('#currency').value;
+    const rows = [['Description','Prix Unitaire','Quantité','Total']];
+    document.querySelectorAll('#items tbody tr').forEach(tr => {
+      rows.push([
+        tr.querySelector('.desc').innerText.trim(),
+        parseFloat(tr.querySelector('.pu').value || 0),
+        parseFloat(tr.querySelector('.qty').value || 0),
+        (parseFloat(tr.querySelector('.pu').value || 0) * parseFloat(tr.querySelector('.qty').value || 0))
+      ]);
+    });
+    rows.push([]);
+    rows.push(['HT TOTAL','', '', document.getElementById('ht').value]);
+    rows.push(['TVA','', '', document.getElementById('tvaVal').value]);
+    rows.push(['REMISE','', '', document.getElementById('remiseVal').value]);
+    rows.push(['TOTAL TTC','', '', document.getElementById('ttc').value]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Facture');
+    const filename = (document.getElementById('inv-number').value || 'facture') + '.xlsx';
+    XLSX.writeFile(wb, filename);
+  });
+
+  // Keep totals in sync
+  compute();
+</script>
+</body>
+</html>
